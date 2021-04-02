@@ -26,7 +26,7 @@ const {
   ETHERSCAN_API_KEY,
   PRIVATE_KEY_MAINNET,
   ETH_RPC_URL_MAINNET,
-  CORGI_TREASURY_ADDRESS,
+  ROCK_TREASURY_ADDRESS,
 } = process.env;
 
 if (ETH_RPC_URL_RINKEBY && PRIVATE_KEY_RINKEBY) {
@@ -53,16 +53,16 @@ const MAINNET_TOKEN_METADATA_URI = "https://cryptocorgis.co/api/token-metadata/{
 const RINKEBY_TOKEN_METADATA_URI = "https://rinkeby.cryptocorgis.co/api/token-metadata/{id}";
 const CONTRACT_METADATA_URI = "https://cryptocorgis.co/api/contract-metadata";
 
-task("deploy_breeder", "Deploy the CryptoCorgisBreeder smart contract", async (args, hre) => {
-  const breederFactory = await hre.ethers.getContractFactory("CryptoCorgisBreeder");
+task("deploy_spawner", "Deploy the CryptoRockSpawner smart contract", async (args, hre) => {
+  const spawnerFactory = await hre.ethers.getContractFactory("CryptoRockSpawner");
   const tokenMetadataUri = hre.network.name === "rinkeby" ? RINKEBY_TOKEN_METADATA_URI : MAINNET_TOKEN_METADATA_URI;
-  const breeder = await breederFactory.deploy(tokenMetadataUri, CONTRACT_METADATA_URI, CORGI_TREASURY_ADDRESS);
-  await breeder.deployed();
+  const spawner = await spawnerFactory.deploy(tokenMetadataUri, CONTRACT_METADATA_URI, ROCK_TREASURY_ADDRESS);
+  await spawner.deployed();
   console.log(
-    "Deployed CryptoCorgisBreeder: ",
-    breeder.address,
+    "Deployed CryptoRockSpawner: ",
+    spawner.address,
     tokenMetadataUri,
     CONTRACT_METADATA_URI,
-    CORGI_TREASURY_ADDRESS,
+    ROCK_TREASURY_ADDRESS,
   );
 });
