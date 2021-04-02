@@ -26,6 +26,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
 
   mapping(uint256 => uint256) public rockNumberToBlockNumber;
   mapping(uint256 => uint256) public blockNumberToRockNumber;
+  mapping (uint256 => bytes32) public blockNumberToRockDNA;
   mapping(uint8 => uint256) public mutantRockIdToBlockNumber;
   mapping(uint256 => string) public rockIdToName;
 
@@ -99,7 +100,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   }
 
   function dnaForBlockNumber(uint256 _blockNumber) external pure returns (bytes32) {
-    return keccak256(abi.encodePacked(_blockNumber));
+    return blockNumberToRockDNA[_blockNumber];
   }
 
   /**
@@ -164,7 +165,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     require(msg.value >= price, "CryptoRocksSpawner: Insufficient funds to mint a Crypto Rock");
     treasuryAddress.transfer(price);
     _refundAddress.transfer(msg.value.sub(price));
-    bytes32 rockDna = keccak256(abi.encodePacked(_blockNumber));
+    bytes32 rockDna = blockhash(_blockNumber);
     (bool isMutant, uint8 mutantId) = isMutantRock(rockDna);
     if (isMutant) {
       require(mutantRockIdToBlockNumber[mutantId] == 0, "CryptoRocksSpawner: Crypto Rock mutant already claimed");
@@ -172,6 +173,8 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     }
     rockNumberToBlockNumber[nextRockId] = _blockNumber;
     blockNumberToRockNumber[_blockNumber] = nextRockId;
+    blockNumberToRockDNA[_blockNumber] = rockDna;
+
     // Use _blockNumber as ID.
     _mint(_toAddress, _blockNumber, 1, _data);
     rocksMinted = nextRockId;
