@@ -114,8 +114,13 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     return blockNumberToRockNumber[_blockNumber] == 0;
   }
 
-  function priceForRock(uint256 _rockNumber) public pure returns (uint256) {
-    return FIRST_ROCK_PRICE_ETH.add(INCREMENTAL_PRICE_ETH.mul(_rockNumber.sub(1)));
+  function priceForRock(uint256 _rockNumber, uint256 _blockNumber) public pure returns (uint256) {
+    uint256 rockAge = block.number.trySub(_blockNumber);
+    uint256 this_price = FIRST_ROCK_PRICE_ETH.add(INCREMENTAL_PRICE_ETH.mul(_rockNumber.sub(1))).sub(INCREMENTAL_PRICE_ETH.mul(rockAge.sub(1).mul(2)));
+    if(this_price < FIRST_ROCK_PRICE_ETH){
+      return FIRST_ROCK_PRICE_ETH; //price floor
+    }
+    return this_price;
   }
 
   function isMutantRock(uint256 _blockNumber) public pure returns (bool, uint8) {
@@ -155,7 +160,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     require(rocksMinted < MAX_ROCKS_MINTED, "CryptoRocksSpawner: Cannot mint any more Crypto Rocks");
     require(canMint(_blockNumber, _amount), "CryptoRocksSpawner: Not allowed to mint for that block number");
     uint256 nextRockId = rocksMinted + 1;
-    uint256 price = priceForRock(nextRockId);
+    uint256 price = priceForRock(nextRockId, _blockNumber);
     require(msg.value >= price, "CryptoRocksSpawner: Insufficient funds to mint a Crypto Rock");
     treasuryAddress.transfer(price);
     _refundAddress.transfer(msg.value.sub(price));
