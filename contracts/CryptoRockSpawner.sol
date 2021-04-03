@@ -22,7 +22,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   uint256 public constant MAX_INT_128 = 2**128 - 1;
   uint256 public constant MAX_ROCKS_MINTED = 5000;
   uint256 public constant ROCK_LIFESPAN_BLOCKS = 128;
-  uint256 public constant FIRST_ROCK_PRICE_ETH = 1e16;
+  uint256 public constant FIRST_ROCK_PRICE_ETH = 1e15;
   uint256 public constant INCREMENTAL_PRICE_ETH = 5e13;
 
   address payable public treasuryAddress;
@@ -119,12 +119,25 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     return blockNumberToRockNumber[_blockNumber] == 0;
   }
 
+
   function priceForRock(uint256 _rockNumber, uint256 _blockNumber) public view returns (uint256) {
     (bool _s, uint256 rockAge) = block.number.trySub(_blockNumber);
     require(_s, "Block life not in range");
-    uint256 this_price = FIRST_ROCK_PRICE_ETH.add(INCREMENTAL_PRICE_ETH.mul(_rockNumber.sub(1))).sub(INCREMENTAL_PRICE_ETH.mul(rockAge.sub(1).mul(2)));
-    if(this_price < FIRST_ROCK_PRICE_ETH){
-      return FIRST_ROCK_PRICE_ETH; //price floor
+    uint256 price_ceiling = FIRST_ROCK_PRICE_ETH.add(INCREMENTAL_PRICE_ETH.mul(_rockNumber.sub(1)));
+    (bool _ps, uint256 price_floor) = price_ceiling.trySub(INCREMENTAL_PRICE_ETH.mul(ROCK_LIFESPAN_BLOCKS.mul(2)));
+    if(_ps == false){
+        price_floor = FIRST_ROCK_PRICE_ETH;
+    }
+    if(price_floor < FIRST_ROCK_PRICE_ETH){
+        price_floor = FIRST_ROCK_PRICE_ETH;
+    }
+    uint256 discount = INCREMENTAL_PRICE_ETH.mul((rockAge.mul(2)).sub(1));
+    (bool _ts, uint256 this_price) = price_ceiling.trySub(discount);
+    if(_ts == false){
+        this_price = price_floor;
+    }
+    if(this_price < price_floor){
+        this_price = price_floor;
     }
     return this_price;
   }
