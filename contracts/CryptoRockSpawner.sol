@@ -1,10 +1,17 @@
 //SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.0;
 
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/IERC1155.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/ERC1155.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/introspection/ERC165.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/introspection/IERC165.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Context.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Address.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
-import "https://github.com/cryptonaut420/crypto-corgis-breeder/blob/main/contracts/interfaces/FactoryERC1155.sol";
+import "https://github.com/cryptonaut420/crypto-corgis-breeder/blob/main/contracts/interfaces/FactoryERC1155.sol?1";
 
 //Conract code copied from CryptoRocksBreeder https://github.com/CryptoRocks/crypto-rocks-breeder
 contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
@@ -73,11 +80,11 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   }
 
   /// @dev can only can a rock once and only if you own it.
-  function nameRock(uint256 id, string memory name) public {
+  function nameRock(uint256 id, string memory _name) public {
     require(balanceOf(msg.sender, id) == 1, "CryptoRocksSpawner: Cannot name a rock you do not own");
-    require(bytes(name).length > 0, "CryptoRocksSpawner: Cannot erase a rock name");
+    require(bytes(_name).length > 0, "CryptoRocksSpawner: Cannot erase a rock name");
     require(bytes(rockIdToName[id]).length == 0, "CryptoRocksSpawner: Can only name a rock once");
-    rockIdToName[id] = name;
+    rockIdToName[id] = _name;
   }
 
   /// @dev https://docs.opensea.io/docs/contract-level-metadata
@@ -95,7 +102,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     _setURI(_uri);
   }
 
-  function dnaForBlockNumber(uint256 _blockNumber) external pure returns (bytes32) {
+  function dnaForBlockNumber(uint256 _blockNumber) external view returns (bytes32) {
     return blockNumberToRockDNA[_blockNumber];
   }
 
@@ -104,15 +111,17 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
    * restrict a total supply per option ID (or overall).
    */
   function canMint(uint256 _blockNumber, uint256 _amount) public view override returns (bool) {
-    (bool _, uint256 subResult) = block.number.trySub(ROCK_LIFESPAN_BLOCKS);
+    (bool _s, uint256 subResult) = block.number.trySub(ROCK_LIFESPAN_BLOCKS);
+    require(_s, "Block life not in range");
     if (_blockNumber > block.number || _blockNumber < subResult || _amount > 1) {
       return false;
     }
     return blockNumberToRockNumber[_blockNumber] == 0;
   }
 
-  function priceForRock(uint256 _rockNumber, uint256 _blockNumber) public pure returns (uint256) {
-    uint256 rockAge = block.number.trySub(_blockNumber);
+  function priceForRock(uint256 _rockNumber, uint256 _blockNumber) public view returns (uint256) {
+    (bool _s, uint256 rockAge) = block.number.trySub(_blockNumber);
+    require(_s, "Block life not in range");
     uint256 this_price = FIRST_ROCK_PRICE_ETH.add(INCREMENTAL_PRICE_ETH.mul(_rockNumber.sub(1))).sub(INCREMENTAL_PRICE_ETH.mul(rockAge.sub(1).mul(2)));
     if(this_price < FIRST_ROCK_PRICE_ETH){
       return FIRST_ROCK_PRICE_ETH; //price floor
@@ -121,7 +130,8 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   }
 
   function mint(uint256 _blockNumber, bytes calldata _data) public payable {
-    mint(_blockNumber, msg.sender, 1, msg.sender, _data);
+    address payable refundAddress = payable(msg.sender);
+    mint(_blockNumber, msg.sender, 1, refundAddress, _data);
   }
 
   function mint(
@@ -130,7 +140,8 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     uint256 _amount,
     bytes calldata _data
   ) public payable override {
-    mint(_blockNumber, _toAddress, _amount, msg.sender, _data);
+    address payable refundAddress = payable(msg.sender);
+    mint(_blockNumber, _toAddress, _amount, refundAddress, _data);
   }
 
   function mint(
