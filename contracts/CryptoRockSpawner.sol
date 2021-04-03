@@ -2,9 +2,9 @@
 pragma solidity ^0.7.0;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./interfaces/FactoryERC1155.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
+import "https://github.com/cryptonaut420/crypto-corgis-breeder/blob/main/contracts/interfaces/FactoryERC1155.sol";
 
 //Conract code copied from CryptoRocksBreeder https://github.com/CryptoRocks/crypto-rocks-breeder
 contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
