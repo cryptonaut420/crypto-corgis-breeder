@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.7.0;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/FactoryERC1155.sol";
@@ -12,7 +12,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
 
   event RockSold(uint256 rockNumber, uint256 blockNumber, address owner);
 
-  uint256 public constant MAX_INT_256 = 2**256 - 1;
+  uint256 public constant MAX_INT_128 = 2**128 - 1;
   uint256 public constant MAX_ROCKS_MINTED = 5000;
   uint256 public constant ROCK_LIFESPAN_BLOCKS = 128;
   uint256 public constant FIRST_ROCK_PRICE_ETH = 1e16;
@@ -47,7 +47,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   }
 
   function numOptions() external pure override returns (uint256) {
-    return MAX_INT_256;
+    return MAX_INT_128;
   }
 
   /**
