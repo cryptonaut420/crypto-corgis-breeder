@@ -17,7 +17,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   uint256 public constant ROCK_LIFESPAN_BLOCKS = 128;
   uint256 public constant FIRST_ROCK_PRICE_ETH = 1e16;
   uint256 public constant INCREMENTAL_PRICE_ETH = 5e15;
-  uint256 public constant NUMBER_MUTANT_ROCKS = 31;
+  uint256 public constant NUMBER_MUTANT_ROCKS = 12;
   // Each mutant rock has a probability of 6/2^16 of being born.
   uint256 public constant MUTANT_ROCK_PROBABILITY = NUMBER_MUTANT_ROCKS * 6;
 
