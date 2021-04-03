@@ -16,7 +16,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   uint256 public constant MAX_ROCKS_MINTED = 5000;
   uint256 public constant ROCK_LIFESPAN_BLOCKS = 128;
   uint256 public constant FIRST_ROCK_PRICE_ETH = 1e16;
-  uint256 public constant INCREMENTAL_PRICE_ETH = 5e15;
+  uint256 public constant INCREMENTAL_PRICE_ETH = 5e13;
 
   address payable public treasuryAddress;
   uint256 public rocksMinted = 0;
