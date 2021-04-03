@@ -10,16 +10,13 @@ import "./interfaces/FactoryERC1155.sol";
 contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   using SafeMath for uint256;
 
-  event RockSold(uint256 rockNumber, uint256 blockNumber, uint8 mutantRockId, address owner);
+  event RockSold(uint256 rockNumber, uint256 blockNumber, address owner);
 
   uint256 public constant MAX_INT_256 = 2**256 - 1;
   uint256 public constant MAX_ROCKS_MINTED = 5000;
   uint256 public constant ROCK_LIFESPAN_BLOCKS = 128;
   uint256 public constant FIRST_ROCK_PRICE_ETH = 1e16;
   uint256 public constant INCREMENTAL_PRICE_ETH = 5e15;
-  uint256 public constant NUMBER_MUTANT_ROCKS = 12;
-  // Each mutant rock has a probability of 6/2^16 of being born.
-  uint256 public constant MUTANT_ROCK_PROBABILITY = NUMBER_MUTANT_ROCKS * 6;
 
   address payable public treasuryAddress;
   uint256 public rocksMinted = 0;
@@ -27,7 +24,6 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   mapping(uint256 => uint256) public rockNumberToBlockNumber;
   mapping(uint256 => uint256) public blockNumberToRockNumber;
   mapping (uint256 => bytes32) public blockNumberToRockDNA;
-  mapping(uint8 => uint256) public mutantRockIdToBlockNumber;
   mapping(uint256 => string) public rockIdToName;
 
   string private contractDataURI;
@@ -124,20 +120,6 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     return this_price;
   }
 
-  function isMutantRock(uint256 _blockNumber) public pure returns (bool, uint8) {
-    return isMutantRock(keccak256(abi.encodePacked(_blockNumber)));
-  }
-
-  /// @dev Return whether a rock with this DNA is a mutant, and what mutation ID it has.
-  function isMutantRock(bytes32 _rockDna) public pure returns (bool, uint8) {
-    uint256 rockDnaNum = uint256(_rockDna);
-    uint16 lastTwoBytesValue = uint16(rockDnaNum);
-    if (lastTwoBytesValue < MUTANT_ROCK_PROBABILITY) {
-      return (true, uint8(lastTwoBytesValue / 6) + 1);
-    }
-    return (false, 0);
-  }
-
   function mint(uint256 _blockNumber, bytes calldata _data) public payable {
     mint(_blockNumber, msg.sender, 1, msg.sender, _data);
   }
@@ -166,11 +148,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     treasuryAddress.transfer(price);
     _refundAddress.transfer(msg.value.sub(price));
     bytes32 rockDna = blockhash(_blockNumber);
-    (bool isMutant, uint8 mutantId) = isMutantRock(rockDna);
-    if (isMutant) {
-      require(mutantRockIdToBlockNumber[mutantId] == 0, "CryptoRocksSpawner: Crypto Rock mutant already claimed");
-      mutantRockIdToBlockNumber[mutantId] = _blockNumber;
-    }
+
     rockNumberToBlockNumber[nextRockId] = _blockNumber;
     blockNumberToRockNumber[_blockNumber] = nextRockId;
     blockNumberToRockDNA[_blockNumber] = rockDna;
@@ -178,6 +156,6 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     // Use _blockNumber as ID.
     _mint(_toAddress, _blockNumber, 1, _data);
     rocksMinted = nextRockId;
-    emit RockSold(nextRockId, _blockNumber, mutantId, _toAddress);
+    emit RockSold(nextRockId, _blockNumber, _toAddress);
   }
 }
