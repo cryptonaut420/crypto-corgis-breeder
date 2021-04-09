@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol"
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/IERC1155.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/ERC1155.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/introspection/ERC165.sol";
@@ -18,15 +20,22 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   using SafeMath for uint256;
 
   event RockSold(uint256 rockNumber, uint256 blockNumber, address owner);
+  event UniqueSold(uint256 uniqueNumber, address owner);
 
   uint256 public constant MAX_INT_128 = 2**128 - 1;
-  uint256 public constant MAX_ROCKS_MINTED = 5000;
+  uint256 public constant MAX_ROCKS_MINTED = 4200;
   uint256 public constant ROCK_LIFESPAN_BLOCKS = 128;
   uint256 public constant FIRST_ROCK_PRICE_ETH = 1e15;
   uint256 public constant INCREMENTAL_PRICE_ETH = 5e13;
+  uint256 public constant MAX_UNIQUES_MINTED = 12;
+  uint256 public constant UNIQUE_COST_FACTOR = 2;
 
   address payable public treasuryAddress;
+  IERC20 public rewardToken;
   uint256 public rocksMinted = 0;
+  uint256 public uniquesMinted = 0;
+  uint256 public uniqueCost = 512 * 1e18;
+  uint256 public stoneReward = 0;
 
   mapping(uint256 => uint256) public rockNumberToBlockNumber;
   mapping(uint256 => uint256) public blockNumberToRockNumber;
@@ -38,10 +47,12 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   constructor(
     string memory _metadataURI,
     string memory _contractDataURI,
-    address payable _treasuryAddress
+    address payable _treasuryAddress,
+    IERC20 _rewardToken
   ) ERC1155(_metadataURI) {
     contractDataURI = _contractDataURI;
     treasuryAddress = _treasuryAddress;
+    rewardToken = _rewardToken;
   }
 
   /// @dev https://docs.opensea.io/docs/2-custom-sale-contract-viewing-your-sale-assets-on-opensea
@@ -177,9 +188,35 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     blockNumberToRockNumber[_blockNumber] = nextRockId;
     blockNumberToRockDNA[_blockNumber] = rockDna;
 
+    //STONE rewards
+    stoneReward = nextRockId * 1e18;
+    rewardToken.mint(_toAddress, stoneReward);
+
     // Use _blockNumber as ID.
     _mint(_toAddress, _blockNumber, 1, _data);
     rocksMinted = nextRockId;
     emit RockSold(nextRockId, _blockNumber, _toAddress);
+  }
+
+  function mintUnique(
+    bytes calldata _data
+  ) public payable {
+    //do checks
+    require(uniquesMinted < MAX_UNIQUES_MINTED, "CryptoRocksSpawner: Cannot mint any more Unique Crypto Rocks");
+    require(rewardToken.balanceOf(msg.sender) >= uniqueCost, "CryptoRocksSpawner: Insufficient STONE balance to mint Unique");
+
+    //burn the reward tokens
+    rewardToken.burn(msg.sender, uniqueCost);
+
+    //mint the unique rock
+    uniquesMinted = uniquesMinted + 1; //increment the amount minted, and also use it as the ID... so rocks ID 1, 2, 3, 4 etc. are all uniques
+    _mint(msg.sender, uniquesMinted, 1, _data);
+    rockNumberToBlockNumber[uniquesMinted] = uniquesMinted;
+    blockNumberToRockNumber[uniquesMinted] = uniquesMinted;
+    blockNumberToRockDNA[uniquesMinted] = keccak256(abi.encodePacked(uniquesMinted)));
+
+    //increase the cost for the next person
+    uniqueCost = uniqueCost * UNIQUE_COST_FACTOR;
+    emit UniqueSold(uniquesMinted, _toAddress);
   }
 }
