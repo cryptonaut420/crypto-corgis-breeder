@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol"
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/IERC1155.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC1155/ERC1155.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/introspection/ERC165.sol";
@@ -14,6 +14,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contr
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
 import "https://github.com/cryptonaut420/crypto-corgis-breeder/blob/main/contracts/interfaces/FactoryERC1155.sol?1";
+import "https://github.com/cryptonaut420/crypto-corgis-breeder/blob/main/contracts/StoneToken.sol";
 
 //Conract code copied from CryptoRocksBreeder https://github.com/CryptoRocks/crypto-rocks-breeder
 contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
@@ -31,7 +32,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   uint256 public constant UNIQUE_COST_FACTOR = 2;
 
   address payable public treasuryAddress;
-  IERC20 public rewardToken;
+  StoneToken public rewardToken;
   uint256 public rocksMinted = 0;
   uint256 public uniquesMinted = 0;
   uint256 public uniqueCost = 512 * 1e18;
@@ -48,7 +49,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     string memory _metadataURI,
     string memory _contractDataURI,
     address payable _treasuryAddress,
-    IERC20 _rewardToken
+    StoneToken _rewardToken
   ) ERC1155(_metadataURI) {
     contractDataURI = _contractDataURI;
     treasuryAddress = _treasuryAddress;
@@ -206,17 +207,17 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     require(rewardToken.balanceOf(msg.sender) >= uniqueCost, "CryptoRocksSpawner: Insufficient STONE balance to mint Unique");
 
     //burn the reward tokens
-    rewardToken.burn(msg.sender, uniqueCost);
+    rewardToken.burn(uniqueCost);
 
     //mint the unique rock
     uniquesMinted = uniquesMinted + 1; //increment the amount minted, and also use it as the ID... so rocks ID 1, 2, 3, 4 etc. are all uniques
     _mint(msg.sender, uniquesMinted, 1, _data);
     rockNumberToBlockNumber[uniquesMinted] = uniquesMinted;
     blockNumberToRockNumber[uniquesMinted] = uniquesMinted;
-    blockNumberToRockDNA[uniquesMinted] = keccak256(abi.encodePacked(uniquesMinted)));
+    blockNumberToRockDNA[uniquesMinted] = keccak256(abi.encodePacked(uniquesMinted));
 
     //increase the cost for the next person
     uniqueCost = uniqueCost * UNIQUE_COST_FACTOR;
-    emit UniqueSold(uniquesMinted, _toAddress);
+    emit UniqueSold(uniquesMinted, msg.sender);
   }
 }
