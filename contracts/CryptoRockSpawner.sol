@@ -35,7 +35,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
   StoneToken public rewardToken;
   uint256 public rocksMinted = 0;
   uint256 public uniquesMinted = 0;
-  uint256 public uniqueCost = 512 * 1e18;
+  uint256 public uniqueCost = 256 * 1e18;
   uint256 public stoneReward = 0;
 
   mapping(uint256 => uint256) public rockNumberToBlockNumber;
@@ -130,7 +130,10 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     }
     return blockNumberToRockNumber[_blockNumber] == 0;
   }
-
+  
+  function hasClaimed(uint256 _blockNumber) external view returns (bool) {
+    return blockNumberToRockNumber[_blockNumber] == 0;
+  }
 
   function priceForRock(uint256 _rockNumber, uint256 _blockNumber) public view returns (uint256) {
     (bool _s, uint256 rockAge) = block.number.trySub(_blockNumber);
@@ -143,7 +146,7 @@ contract CryptoRockSpawner is Ownable, FactoryERC1155, ERC1155 {
     if(price_floor < FIRST_ROCK_PRICE_ETH){
         price_floor = FIRST_ROCK_PRICE_ETH;
     }
-    uint256 discount = INCREMENTAL_PRICE_ETH.mul((rockAge.mul(2)).sub(1));
+    uint256 discount = (INCREMENTAL_PRICE_ETH.mul(2)).mul(rockAge);
     (bool _ts, uint256 this_price) = price_ceiling.trySub(discount);
     if(_ts == false){
         this_price = price_floor;
